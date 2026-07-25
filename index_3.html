@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketing & Eventi — collegamento live</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#141b2e;}
+  h1{font-size:20px;}
+  .status{font-size:13px;color:#6b7280;margin-bottom:16px;}
+  button{background:#b8860b;color:#241b00;border:none;padding:10px 18px;border-radius:7px;font-weight:600;cursor:pointer;font-size:13px;}
+  button:hover{background:#8a6d0f;}
+  pre{background:#f4f3ef;border:1px solid #e3e1d9;border-radius:8px;padding:16px;font-size:11.5px;overflow:auto;max-height:500px;}
+  .error{color:#a33333;font-size:13px;}
+</style>
+</head>
+<body>
+
+<h1>Marketing & Eventi — verifica collegamento live</h1>
+<p class="status">Niente più login Microsoft: legge e scrive tramite due flussi Power Automate.</p>
+
+<button id="testFlowBtn">Test scrittura checklist (Power Automate)</button>
+<div id="flowOutput"></div>
+
+<hr style="margin:28px 0;border:none;border-top:1px solid #e3e1d9;">
+
+<p class="status">Lettura Masterplan Eventi: da collegare appena il secondo flusso (lettura) è pronto.</p>
+<button id="readFlowBtn" disabled title="Da attivare quando READ_FLOW_URL è impostato">Leggi Masterplan (non ancora collegato)</button>
+<div id="readOutput"></div>
+
+<script>
+// ============================================================
+// Flusso Power Automate che SCRIVE una riga su Checklist_Stato.xlsx.
+// ============================================================
+const FLOW_URL = "https://defaultcc76ff6e826f4d0082ef35937f8efd.9d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/16/workflows/b94b430b609a4478b2358dc819a9b480/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=_WymGyuo4kDgtRYQWA5NEVIj1YXORnHP8MxVlSDmYS0";
+
+// Flusso Power Automate che LEGGE la tabella EventiTabella dal Masterplan.
+// PLACEHOLDER: sostituire con l'URL vero quando il secondo flusso è pronto.
+const READ_FLOW_URL = "";
+
+async function testFlow(){
+  const flowOutput = document.getElementById("flowOutput");
+  flowOutput.innerHTML = "<p class='status'>Chiamo il flusso Power Automate...</p>";
+  const testPayload = {
+    evento: "TEST",
+    eventoData: "2026-01-01",
+    itemId: "test-1",
+    fatto: true,
+    modificatoDa: "Prova dalla webapp"
+  };
+  try{
+    const res = await fetch(FLOW_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(testPayload)
+    });
+    const text = await res.text();
+    flowOutput.innerHTML = `
+      <p class="status">Risposta ricevuta — status HTTP: ${res.status}</p>
+      <pre>${text || "(corpo vuoto, ma la richiesta è arrivata: se lo status è 200/202 ha funzionato)"}</pre>
+      <p class="status">Ora vai a controllare il file Checklist_Stato.xlsx su SharePoint: dovrebbe essere comparsa una riga nuova con Evento = TEST.</p>
+    `;
+  }catch(e){
+    flowOutput.innerHTML = `<p class="error">Errore nella chiamata: ${e.message}<br>Se nella Console del browser (F12) vedi la parola "CORS", dimmelo, ha una correzione nota.</p>`;
+  }
+}
+
+async function readFlow(){
+  const readOutput = document.getElementById("readOutput");
+  if(!READ_FLOW_URL){
+    readOutput.innerHTML = `<p class="error">READ_FLOW_URL non ancora impostato.</p>`;
+    return;
+  }
+  readOutput.innerHTML = "<p class='status'>Leggo il Masterplan...</p>";
+  try{
+    const res = await fetch(READ_FLOW_URL, { method: "POST" });
+    const data = await res.json();
+    readOutput.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+  }catch(e){
+    readOutput.innerHTML = `<p class="error">Errore: ${e.message}</p>`;
+  }
+}
+
+document.getElementById("testFlowBtn").addEventListener("click", testFlow);
+document.getElementById("readFlowBtn").addEventListener("click", readFlow);
+</script>
+</body>
+</html>
