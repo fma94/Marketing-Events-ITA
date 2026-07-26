@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketing & Eventi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+  :root{
+    --ink:#141b2e;
+    --ink-2:#2a3654;
+    --paper:#f4f3ef;
+    --card:#ffffff;
+    --line:#e3e1d9;
+    --muted:#6b7280;
+    --accent:#b8860b;
+    --accent-2:#8a6d0f;
+    --good:#2f6f4e;
+    --good-bg:#e7f2ec;
+    --warn:#a15c1f;
+    --warn-bg:#faeadb;
+    --bad:#a33333;
+    --bad-bg:#f8e6e6;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .app{display:flex;min-height:100vh;}
+
+  /* Sidebar */
+  .side{
+    width:220px;flex-shrink:0;background:var(--ink);color:#e9e8e3;
+    padding:24px 16px;display:flex;flex-direction:column;gap:28px;
+  }
+  .brand{font-size:15px;font-weight:700;letter-spacing:.02em;}
+  .brand small{display:block;font-weight:400;color:#9aa0b4;font-size:11.5px;margin-top:2px;}
+  .nav{display:flex;flex-direction:column;gap:2px;}
+  .nav button{
+    all:unset;cursor:pointer;padding:10px 12px;border-radius:8px;font-size:13.5px;
+    color:#c7cadb;transition:background .15s,color .15s;
+  }
+  .nav button:hover{background:#1e2740;color:#fff;}
+  .nav button.active{background:var(--accent);color:#1b1400;font-weight:600;}
+  .side-foot{margin-top:auto;font-size:11px;color:#7f8497;line-height:1.5;}
+
+  /* Main */
+  .main{flex:1;padding:28px 32px 60px;max-width:1180px;}
+  h1{font-size:20px;margin:0 0 4px;}
+  .subtitle{color:var(--muted);font-size:13px;margin:0 0 22px;}
+
+  /* KPI strip */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:28px;}
+  .kpi-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
+  .kpi-label{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px;}
+  .kpi-value{font-size:26px;font-weight:700;line-height:1;}
+  .kpi-sub{font-size:12px;color:var(--muted);margin-top:6px;}
+
+  .section{margin-bottom:32px;}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
+  .section-head h2{font-size:15px;margin:0;}
+  .badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;}
+  .badge.demo{background:var(--warn-bg);color:var(--warn);}
+  .badge.real{background:var(--good-bg);color:var(--good);}
+
+  /* Event cards */
+  .events{display:flex;flex-direction:column;gap:10px;}
+  .ev-card-wrap{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  .ev-card{cursor:pointer;padding:14px 18px;display:grid;grid-template-columns:110px 1fr 130px 200px 160px;gap:16px;align-items:center;}
+  .ev-card:hover{background:#faf9f6;}
+  .ev-detail{display:none;padding:0 18px;border-top:1px solid var(--line);background:#faf9f6;}
+  .ev-detail.open{display:block;padding:14px 18px;}
+  .cl-group{break-inside:avoid;margin-bottom:10px;}
+  .cl-group-title{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;margin:8px 0 4px;}
+  .cal-month{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;}
+  .cal-month.current{border:2px solid var(--ink);background:#fdf6e8;}
+  .cal-month-title{font-size:12px;font-weight:600;margin-bottom:8px;text-transform:capitalize;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+  .cal-dow{font-size:9px;text-align:center;color:var(--muted);}
+  .cal-day{font-size:9.5px;text-align:center;padding:3px 0;border-radius:3px;color:var(--ink-2);position:relative;cursor:default;}
+  .cal-day.empty{visibility:hidden;}
+  .cal-day.has-event{color:#fff;font-weight:700;}
+  .cal-day.today{outline:1.5px solid var(--ink);outline-offset:-1px;}
+  .cl-item{display:flex;align-items:center;gap:14px;font-size:12.5px;padding:6px 0;cursor:pointer;}
+  .cl-item input{flex-shrink:0;margin-top:0;width:14px;height:14px;}
+  .cl-voce{width:340px;flex-shrink:0;line-height:1.3;}
+  .cl-item.done .cl-voce{color:var(--muted);text-decoration:line-through;}
+  .cl-deadline{font-size:11.5px;color:var(--muted);white-space:nowrap;flex-shrink:0;width:90px;text-align:right;padding-right:6px;}
+  .cl-deadline.overdue{color:var(--bad);font-weight:600;}
+  .wk-legend-current{color:var(--ink);font-weight:600;}
+  .wk-legend-event{color:var(--ink-2);}
+  .cl-track-empty{flex:1;}
+
+  .wk-header-row{display:flex;align-items:center;gap:14px;margin-bottom:8px;}
+  .wk-header-spacer{width:14px;flex-shrink:0;}
+  .wk-header-voce{width:340px;flex-shrink:0;}
+  .wk-header{flex:1;display:grid;gap:0;}
+  .wk-header-deadline{width:90px;flex-shrink:0;text-align:right;padding-right:6px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;}
+  .wk-cell{font-size:9.5px;text-align:center;color:var(--muted);padding:4px 0;border-radius:3px;}
+  .wk-cell.wk-current{background:var(--ink);color:#fff;font-weight:700;}
+  .wk-cell.wk-future{color:var(--ink-2);}
+  .wk-cell.wk-event{outline:1.5px solid var(--ink);outline-offset:-1px;}
+
+  .wk-track{flex:1;display:grid;gap:0;position:relative;height:24px;}
+  .wk-baseline{grid-column:1/-1;grid-row:1;align-self:center;height:1px;background:var(--line);}
+  .wk-marker{grid-row:1;align-self:stretch;justify-self:center;width:1.5px;}
+  .wk-marker-today{background:var(--bad);opacity:.4;}
+  .wk-marker-event{background:var(--ink);opacity:.35;}
+  .wk-dot{grid-row:1;align-self:center;justify-self:center;width:13px;height:13px;border-radius:50%;border:2.5px solid var(--accent-2);background:var(--card);z-index:2;}
+  .wk-dot.done{background:var(--good);border-color:var(--good);}
+  .wk-dot.urgent{background:var(--bad);border-color:var(--bad);}
+  .wk-dot.soon{background:#f2c14e;border-color:#c99a1f;}
+  .ev-date{font-size:12.5px;color:var(--muted);}
+  .ev-name{font-weight:600;font-size:14px;}
+  .ev-leader{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .status-pill{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;width:fit-content;}
+  .status-pill.past{background:var(--good-bg);color:var(--good);}
+  .status-pill.future{background:var(--warn-bg);color:var(--warn);}
+  .status-pill.tbd{background:#ece9e2;color:var(--muted);}
+  .nums{font-size:12.5px;color:var(--ink-2);}
+  .nums b{color:var(--ink);}
+  .progress-wrap{display:flex;flex-direction:column;gap:4px;}
+  .progress-label{font-size:11px;color:var(--muted);}
+  .progress-bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--accent);}
+  .progress-fill.complete{background:var(--good);}
+  .proposte{font-size:12.5px;text-align:right;}
+  .proposte b{color:var(--ink);}
+
+  /* Table generic */
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  th,td{text-align:left;padding:10px 14px;font-size:12.5px;border-bottom:1px solid var(--line);}
+  th{background:#faf9f6;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:.04em;}
+  tr:last-child td{border-bottom:none;}
+  .btn{all:unset;cursor:pointer;background:var(--accent);color:#241b00;font-weight:600;font-size:11.5px;padding:6px 12px;border-radius:7px;}
+  .btn:hover{background:var(--accent-2);}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink-2);}
+
+  .charts{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+  .chart-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  .chart-card h3{font-size:13px;margin:0 0 12px;}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  @media (max-width:900px){
+    .app{flex-direction:column;}
+    .side{width:100%;flex-direction:row;overflow-x:auto;align-items:center;}
+    .nav{flex-direction:row;}
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .ev-card{grid-template-columns:1fr;text-align:left;}
+    .charts{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+    <img src="data:image/png;base64,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" alt="Kaizen Institute" style="width:150px;height:auto;object-fit:contain;display:block;">
+    <div class="brand">Marketing & Eventi<small>ITA</small></div>
+    </div>
+    <nav class="nav">
+      <button class="active" data-view="eventi">Eventi</button>
+      <button data-view="training">Training</button>
+    </nav>
+    <div class="side-foot" id="lastUpdate">Caricamento dati in corso...</div>
+  </aside>
+
+  <main class="main">
+    <div class="view active" id="view-eventi">
+    <h1>Eventi</h1>
+
+    <button class="btn" id="showAddEventBtn" style="margin-bottom:16px;">+ Aggiungi evento</button>
+    <div id="addEventForm" style="display:none;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:24px;max-width:480px;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <label style="font-size:12px;">Nome cliente<br>
+          <input id="newEventoNome" type="text" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;margin-top:3px;">
+        </label>
+        <label style="font-size:12px;">Tipo evento<br>
+          <select id="newEventoTipo" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;margin-top:3px;">
+            <option value="BV">Benchmark Visit</option>
+            <option value="F">Fiera</option>
+            <option value="RT">Round Table</option>
+            <option value="KA">Kaizen Award</option>
+          </select>
+        </label>
+        <label style="font-size:12px;">Leader<br>
+          <input id="newEventoLeader" type="text" placeholder="es. AVI" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;margin-top:3px;">
+        </label>
+        <div style="display:flex;gap:10px;">
+          <label style="font-size:12px;flex:1;">Data inizio<br>
+            <input id="newEventoDataInizio" type="date" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;margin-top:3px;">
+          </label>
+          <label style="font-size:12px;flex:1;">Data fine (se più giorni)<br>
+            <input id="newEventoDataFine" type="date" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;margin-top:3px;">
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button class="btn" id="submitAddEventBtn">Crea evento</button>
+          <button class="btn ghost" id="cancelAddEventBtn">Annulla</button>
+        </div>
+        <div id="addEventStatus" style="font-size:12px;"></div>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpi-eventi"></div>
+
+    <div class="section">
+      <div class="section-head"><h2>Calendario</h2></div>
+      <div id="calendarView" style="display:grid;grid-template-columns:repeat(6,1fr);gap:14px;"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2>Eventi svolti</h2>
+        <button class="btn ghost" id="toggle-past-btn" onclick="togglePastEvents()">Mostra</button>
+      </div>
+      <div class="events" id="events-past" style="display:none;"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>Eventi in programma</h2></div>
+      <div class="events" id="events-future"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>Eventi da programmare</h2></div>
+      <div class="events" id="events-tbd"></div>
+    </div>
+    </div>
+
+    <div class="view" id="view-training">
+    <h1>Training</h1>
+    <p class="subtitle">Cartella "Kaizen Coach", anno 2026.</p>
+    <div class="section">
+      <button class="btn" id="dropboxLoginBtn">Accedi con Dropbox</button>
+      <button class="btn ghost" id="dropboxLoadBtn" style="margin-left:8px;" disabled>Carica training</button>
+      <div id="dropboxStatus" style="margin-top:10px;"></div>
+      <div style="margin-top:14px;display:flex;gap:8px;align-items:center;">
+        <input id="dbxPathInput" type="text" placeholder="lascia vuoto per la radice" style="flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;">
+        <button class="btn ghost" id="dbxExploreBtn">Esplora cartella</button>
+      </div>
+      <div id="dbxExploreResult" style="margin-top:10px;"></div>
+      <div class="kpis" id="kpi-training" style="margin-top:16px;"></div>
+      <div id="trainingTableWrap" style="margin-top:14px;"></div>
+    </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ============================================================
+// Dropbox: login diretto dal browser (OAuth PKCE, nessun segreto
+// lato server) + lettura ed estrazione degli Excel training.
+// ============================================================
+const DROPBOX_APP_KEY = "tzt4o8pu9364l6l";
+const DROPBOX_REDIRECT_URI = window.location.origin + window.location.pathname;
+
+function b64url(buf){
+  return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function pkceChallenge(verifier){
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return b64url(digest);
+}
+function randomVerifier(){
+  const arr = new Uint8Array(64);
+  crypto.getRandomValues(arr);
+  return b64url(arr.buffer);
+}
+
+async function startDropboxLogin(){
+  const verifier = randomVerifier();
+  sessionStorage.setItem("dbx_verifier", verifier);
+  const challenge = await pkceChallenge(verifier);
+  const url = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=code&code_challenge=${challenge}&code_challenge_method=S256&redirect_uri=${encodeURIComponent(DROPBOX_REDIRECT_URI)}&token_access_type=online`;
+  window.location.href = url;
+}
+
+async function handleDropboxRedirect(){
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  if(!code) return;
+  const verifier = sessionStorage.getItem("dbx_verifier");
+  const body = new URLSearchParams({
+    code, grant_type: "authorization_code",
+    client_id: DROPBOX_APP_KEY, redirect_uri: DROPBOX_REDIRECT_URI,
+    code_verifier: verifier
+  });
+  const res = await fetch("https://api.dropboxapi.com/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body
+  });
+  const data = await res.json();
+  if(data.access_token){
+    sessionStorage.setItem("dbx_token", data.access_token);
+    window.history.replaceState({}, "", window.location.pathname); // pulisce l'URL dal ?code=
+    document.getElementById("dropboxStatus").innerHTML = `<p class="status">Login Dropbox riuscito.</p>`;
+    document.getElementById("dropboxLoadBtn").disabled = false;
+  }else{
+    document.getElementById("dropboxStatus").innerHTML = `<p class="error">Login Dropbox fallito: ${JSON.stringify(data)}</p>`;
+  }
+}
+
+const TRAINING_FOLDER = "/cartella condivisa con kaizen institute/2. formazione/1. formazione a catalogo/storico/2026/kaizen coach";
+
+async function dbxFetch(endpoint, body){
+  const token = sessionStorage.getItem("dbx_token");
+  const res = await fetch(`https://api.dropboxapi.com/2/${endpoint}`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+async function dbxDownload(path){
+  const token = sessionStorage.getItem("dbx_token");
+  const res = await fetch("https://content.dropboxapi.com/2/files/download", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Dropbox-API-Arg": JSON.stringify({ path })
+    }
+  });
+  return res.arrayBuffer();
+}
+
+function parseElencoPartecipanti(buffer){
+  const wb = XLSX.read(buffer, { type: "array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+  // Scopriamo le colonne vere leggendo le intestazioni del file (invece di assumere
+  // posizioni fisse, che cambiano leggermente da file a file).
+  let trainer = "—", statoCol = -1, fatturatoCol = -1, dataStartRow = -1;
+  rows.forEach((r, i) => {
+    if(!r) return;
+    r.forEach((cell, ci) => {
+      const c = String(cell ?? "").trim().toLowerCase();
+      if(c === "trainer:"){
+        for(let k=ci+1; k<r.length; k++){
+          if(r[k]!=null && String(r[k]).trim()!==""){ trainer = String(r[k]).trim(); break; }
+        }
+      }
+      if(c === "stato") statoCol = ci;
+      if(c === "fatturato") fatturatoCol = ci;
+    });
+    if(statoCol>=0 && fatturatoCol>=0 && dataStartRow<0) dataStartRow = i+1;
+  });
+
+  let confermati = 0, nonConfermati = 0, fatturato = 0;
+  if(dataStartRow>=0){
+    for(let i=dataStartRow; i<rows.length; i++){
+      const r = rows[i];
+      if(!r) continue;
+      const stato = (r[statoCol] ?? "").toString().trim().toLowerCase();
+      if(stato === "confermato" || stato.startsWith("confermato")) confermati++;
+      else if(stato) nonConfermati++;
+      const fatt = r[fatturatoCol];
+      if(typeof fatt === "number") fatturato += fatt;
+      else if(typeof fatt === "string"){
+        const n = parseFloat(fatt.replace(/[^\d.,-]/g,"").replace(",","."));
+        if(!isNaN(n)) fatturato += n;
+      }
+    }
+  }
+  return { trainer, confermati, nonConfermati, fatturato };
+}
+
+async function loadTrainingFromDropbox(){
+  const statusEl = document.getElementById("dropboxStatus");
+  statusEl.innerHTML = `<p class="status">Elenco le cartelle training...</p>`;
+  try{
+    const list = await dbxFetch("files/list_folder", { path: TRAINING_FOLDER });
+    if(!list.entries){
+      statusEl.innerHTML = `<p class="error">Errore Dropbox su list_folder:</p><pre>${JSON.stringify(list, null, 2)}</pre>`;
+      return;
+    }
+    const folders = list.entries.filter(e=>e[".tag"]==="folder" && /\d{2}\.\d{2}\.\d{4}/.test(e.name));
+    const results = [];
+    for(const folder of folders){
+      statusEl.innerHTML = `<p class="status">Leggo: ${folder.name}...</p>`;
+      const inner = await dbxFetch("files/list_folder", { path: folder.path_lower });
+      const xlsxFile = (inner.entries||[]).find(e=>e.name.toLowerCase().startsWith("elenco partecipanti") && e.name.toLowerCase().endsWith(".xlsx"));
+      if(!xlsxFile) continue;
+      const buffer = await dbxDownload(xlsxFile.path_lower);
+      const parsed = parseElencoPartecipanti(buffer);
+      const annullato = /annullato/i.test(folder.name);
+      const dateMatch = folder.name.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+      const data = new Date(+dateMatch[3], +dateMatch[2]-1, +dateMatch[1]);
+      results.push({ nome: folder.name, annullato, data, ...parsed });
+    }
+    renderTrainingTable(results);
+    statusEl.innerHTML = `<p class="status">${results.length} training caricati.</p>`;
+  }catch(e){
+    statusEl.innerHTML = `<p class="error">Errore: ${e.message}</p>`;
+    console.error(e);
+  }
+}
+
+function renderTrainingTable(results){
+  const sorted = [...results].sort((a,b)=>(a.data||0)-(b.data||0));
+  const past = sorted.filter(r=>r.data && r.data<=today);
+  const future = sorted.filter(r=>r.data && r.data>today);
+  const senzaData = sorted.filter(r=>!r.data);
+
+  const row = r => `
+    <tr>
+      <td>${r.nome}${r.annullato?' <span style="color:var(--bad);font-size:10.5px;font-weight:600;">ANNULLATO</span>':''}</td>
+      <td>${r.data ? fmtDate(r.data) : '-'}</td>
+      <td>${r.trainer}</td>
+      <td>${r.confermati}</td>
+      <td>${r.nonConfermati}</td>
+      <td>€${r.fatturato.toLocaleString('it-IT')}</td>
+    </tr>`;
+  const table = (title, rows) => rows.length ? `
+    <div class="section">
+      <div class="section-head"><h2>${title}</h2></div>
+      <table>
+        <thead><tr><th>Training</th><th>Data</th><th>Trainer</th><th>Confermati</th><th>Da confermare</th><th>Fatturato</th></tr></thead>
+        <tbody>${rows.map(row).join("")}</tbody>
+      </table>
+    </div>` : "";
+
+  document.getElementById("trainingTableWrap").innerHTML =
+    table("Training svolti", past) + table("Training in programma", future) + table("Senza data riconosciuta", senzaData);
+
+  const pianificati = results.length;
+  const fatti = results.filter(r=>!r.annullato && r.data && r.data<=today).length;
+  const annullati = results.filter(r=>r.annullato).length;
+  const partConfermati = results.reduce((s,r)=>s+(r.confermati||0),0);
+  const fatturatoTot = results.filter(r=>!r.annullato).reduce((s,r)=>s+(r.fatturato||0),0);
+  document.getElementById("kpi-training").innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Training pianificati</div><div class="kpi-value">${pianificati}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Training fatti</div><div class="kpi-value">${fatti}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Training annullati</div><div class="kpi-value">${annullati}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Partecipanti confermati</div><div class="kpi-value">${partConfermati}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Fatturato</div><div class="kpi-value">€${fatturatoTot.toLocaleString('it-IT')}</div></div>
+  `;
+}
+
+document.querySelectorAll(".nav button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    document.getElementById("view-"+btn.dataset.view).classList.add("active");
+  });
+});
+
+const MESI_IT_ARR = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+function pad2(n){ return String(n).padStart(2,'0'); }
+
+function buildNewEventStrings(nomeCliente, tipoCode, dInizio, dFine){
+  const tipoLabel = TIPO_CODICI[tipoCode];
+  const y = dInizio.getFullYear(), m = pad2(dInizio.getMonth()+1), d = pad2(dInizio.getDate());
+  let nomeCartella, dataMasterplan;
+  if(dFine && dFine.getTime()!==dInizio.getTime()){
+    const d2 = pad2(dFine.getDate());
+    nomeCartella = `${y}_${m}_${d}-${d2}_${nomeCliente}_${tipoLabel}`;
+    dataMasterplan = `${dInizio.getDate()}-${dFine.getDate()} ${MESI_IT_ARR[dInizio.getMonth()]}`;
+  }else{
+    nomeCartella = `${y}_${m}_${d}_${nomeCliente}_${tipoLabel}`;
+    dataMasterplan = `${y}-${m}-${d}`;
+  }
+  return { nomeCartella, dataMasterplan, tipoLabel };
+}
+
+async function submitAddEvent(){
+  const nome = document.getElementById("newEventoNome").value.trim();
+  const tipoCode = document.getElementById("newEventoTipo").value;
+  const leader = document.getElementById("newEventoLeader").value.trim();
+  const dInizioStr = document.getElementById("newEventoDataInizio").value;
+  const dFineStr = document.getElementById("newEventoDataFine").value;
+  const statusEl = document.getElementById("addEventStatus");
+  if(!ADD_EVENT_URL){
+    statusEl.innerHTML = `<span class="error">Flusso non ancora collegato (ADD_EVENT_URL vuoto).</span>`;
+    return;
+  }
+  if(!nome || !dInizioStr){
+    statusEl.innerHTML = `<span class="error">Nome cliente e data inizio sono obbligatori.</span>`;
+    return;
+  }
+  const dInizio = new Date(dInizioStr + "T00:00:00");
+  const dFine = dFineStr ? new Date(dFineStr + "T00:00:00") : dInizio;
+  const { nomeCartella, dataMasterplan } = buildNewEventStrings(nome, tipoCode, dInizio, dFine);
+
+  statusEl.textContent = "Creo l'evento (cartella + riga Masterplan)...";
+  try{
+    const res = await fetch(ADD_EVENT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nomeCliente: nome, tipoCodice: tipoCode, leader,
+        data: dataMasterplan, nomeCartella
+      })
+    });
+    if(res.ok){
+      statusEl.innerHTML = `<span style="color:var(--good);">Evento creato — ricarico i dati...</span>`;
+      ["newEventoNome","newEventoLeader","newEventoDataInizio","newEventoDataFine"].forEach(id=>document.getElementById(id).value="");
+      setTimeout(loadAll, 2000);
+    }else{
+      statusEl.innerHTML = `<span class="error">Errore (status ${res.status}). Controlla la Cronologia esecuzioni del flusso.</span>`;
+    }
+  }catch(e){
+    statusEl.innerHTML = `<span class="error">Errore: ${e.message}</span>`;
+  }
+}
+
+document.getElementById("showAddEventBtn").addEventListener("click", ()=>{
+  document.getElementById("addEventForm").style.display = "block";
+});
+document.getElementById("cancelAddEventBtn").addEventListener("click", ()=>{
+  document.getElementById("addEventForm").style.display = "none";
+});
+document.getElementById("submitAddEventBtn").addEventListener("click", submitAddEvent);
+
+function buildNomeCartellaFromEvento(e){
+  const d = new Date(e.data);
+  const y = d.getFullYear(), m = pad2(d.getMonth()+1), day = pad2(d.getDate());
+  return `${y}_${m}_${day}_${e.nome}_${e.tipo}`;
+}
+
+async function moveToConcluded(idx){
+  const e = eventi[idx];
+  if(!CLOSE_EVENT_URL){ alert("Flusso non ancora collegato (CLOSE_EVENT_URL vuoto)."); return; }
+  const nomeCartella = buildNomeCartellaFromEvento(e);
+  if(!confirm(`Chiudere l'evento "${e.nome}"? Sposta la cartella "${nomeCartella}" dentro "Eventi Conclusi".\n\n(Se la cartella dell'evento ha un nome diverso da questo, es. per un evento su più giorni, lo spostamento potrebbe fallire — in quel caso spostala a mano.)`)) return;
+  try{
+    const res = await fetch(CLOSE_EVENT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ evento: e.nome, nomeCartella })
+    });
+    if(res.ok){
+      alert("Cartella spostata.");
+    }else{
+      alert(`Errore (status ${res.status}). Se hai già chiuso questo evento in precedenza, è normale — la cartella non c'è più al posto vecchio, quindi non trova nulla da spostare. Se invece è la prima volta, controlla la Cronologia esecuzioni del flusso.`);
+    }
+  }catch(err){
+    alert("Errore: " + err.message);
+  }
+}
+
+const editOpen = new Set();
+
+
+function toggleEditEvent(idx){
+  if(editOpen.has(idx)){
+    submitEditEvent(idx); // si chiude -> salva in automatico
+    editOpen.delete(idx);
+  }else{
+    editOpen.add(idx);
+  }
+  render();
+}
+
+async function submitEditEvent(idx){
+  const e = eventi[idx];
+  const statusEl = document.getElementById(`editStatus-${idx}`);
+  if(!EDIT_EVENT_URL){
+    statusEl.innerHTML = `<span class="error">Flusso non ancora collegato (EDIT_EVENT_URL vuoto).</span>`;
+    return;
+  }
+  const val = id => document.getElementById(`${id}-${idx}`).value;
+  const payload = {
+    evento: e.nome, // chiave per trovare la riga giusta
+    iscritti: val("editIscritti"),
+    partecipanti: val("editPartecipanti"),
+    proposteUscite: val("editProposteUscite"),
+    proposteAccettate: val("editProposteAccettate"),
+    valore: val("editValore"),
+    BFA: val("editBFA").trim(),
+    GGA: val("editGGA").trim(),
+    EGO: val("editEGO").trim(),
+    AVI: val("editAVI").trim(),
+    FCE: val("editFCE").trim(),
+  };
+  statusEl.textContent = "Salvo le modifiche sul Masterplan...";
+  try{
+    const res = await fetch(EDIT_EVENT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if(res.ok){
+      statusEl.innerHTML = `<span style="color:var(--good);">Salvato — ricarico i dati...</span>`;
+      setTimeout(loadAll, 2000);
+    }else{
+      statusEl.innerHTML = `<span class="error">Errore (status ${res.status}).</span>`;
+    }
+  }catch(err){
+    statusEl.innerHTML = `<span class="error">Errore: ${err.message}</span>`;
+  }
+}
+
+document.getElementById("dropboxLoginBtn").addEventListener("click", startDropboxLogin);
+
+document.getElementById("dropboxLoadBtn").addEventListener("click", loadTrainingFromDropbox);
+document.getElementById("dbxExploreBtn").addEventListener("click", async ()=>{
+  const path = document.getElementById("dbxPathInput").value.trim();
+  const resultEl = document.getElementById("dbxExploreResult");
+  resultEl.innerHTML = "<p class='status'>Esploro...</p>";
+  try{
+    const list = await dbxFetch("files/list_folder", { path });
+    if(!list.entries){
+      resultEl.innerHTML = `<pre>${JSON.stringify(list, null, 2)}</pre>`;
+      return;
+    }
+    resultEl.innerHTML = `<table><thead><tr><th>Tipo</th><th>Nome</th><th>Percorso da usare</th></tr></thead><tbody>
+      ${list.entries.map(e=>`<tr><td>${e[".tag"]}</td><td>${e.name}</td><td><code>${e.path_lower}</code></td></tr>`).join("")}
+    </tbody></table>`;
+  }catch(e){
+    resultEl.innerHTML = `<p class="error">${e.message}</p>`;
+  }
+});
+handleDropboxRedirect();
+if(sessionStorage.getItem("dbx_token")) document.getElementById("dropboxLoadBtn").disabled = false;
+
+// ============================================================
+// Flussi Power Automate collegati
+// ============================================================
+const READ_EVENTS_URL = "https://defaultcc76ff6e826f4d0082ef35937f8efd.9d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/21/workflows/61d5c208a1a741a3b854402cdc4b956a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Hoc8nwi512iXAMTcLfLEm8tgTpYCWAqNxHcP4BxMecg";
+const READ_CHECKLIST_URL = "https://defaultcc76ff6e826f4d0082ef35937f8efd.9d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/31/workflows/fb0edab420b24f7384f1fa61fcb23583/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bK899bX1b4fSY9-xeAgnm0vgqvQhzRWW3Uu1ReJpgrY";
+const WRITE_CHECKLIST_URL = "https://defaultcc76ff6e826f4d0082ef35937f8efd.9d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/16/workflows/b94b430b609a4478b2358dc819a9b480/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=_WymGyuo4kDgtRYQWA5NEVIj1YXORnHP8MxVlSDmYS0";
+// PLACEHOLDER: da sostituire con l'URL del flusso "Aggiungi nuovo evento" quando è pronto.
+const ADD_EVENT_URL = "https://defaultcc76ff6e826f4d0082ef35937f8efd.9d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/00/workflows/4a98b6298197441f81b877de9c35ef32/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=54G7EMyTtGy5y_d3eLR3dRrrszFp36G6pVhKP5TTXhc";
+// PLACEHOLDER: da sostituire con l'URL del flusso "Modifica evento" quando è pronto.
+const EDIT_EVENT_URL = "https://defaultcc76ff6e826f4d0082ef35937f8efd.9d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/29/workflows/565715caaa7e4fc998d04f0bbf10368b/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=5mUICp6idKw3I9DDB7mGjVF8HzMIZqLfl6b6j6fhpwU";
+// PLACEHOLDER: da sostituire con l'URL del flusso "Sposta in Eventi Conclusi" quando è pronto.
+const CLOSE_EVENT_URL = "https://defaultcc76ff6e826f4d0082ef35937f8efd.9d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/20/workflows/39368a1d9a0047219a8cf476fd11733b/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=hi7p93Qi-BXFg2jWeVyBpBCuCpDevENkMc-L-LH7g7g";
+
+const today = new Date();
+today.setHours(0,0,0,0);
+
+// ============================================================
+// Checklist master. Ogni voce ha un "id" fisso — non cambiarlo mai,
+// altrimenti lo stato salvato nel file smette di corrispondere.
+// Benchmark Visit ha il retroplanning reale (dal tuo Excel); gli altri
+// tre tipi sono ancora la versione breve, senza settimane.
+// ============================================================
+const templates = {
+  "Benchmark Visit": [
+    {id:"bv1", gruppo:"Target", voce:"Individuazione tema giornata", settimane:8},
+    {id:"bv2", gruppo:"Target", voce:"Individuazione azienda + obiettivi", settimane:9},
+    {id:"bv3", gruppo:"Target", voce:"Individuazione target iscritti", settimane:10},
+    {id:"bv4", gruppo:"Coordinamento azienda ospitante", voce:"Individuazione REFERENTI per organizzazione e comunicazione", settimane:7},
+    {id:"bv5", gruppo:"Coordinamento azienda ospitante", voce:"Individuazione DATA + SEDE", settimane:7},
+    {id:"bv6", gruppo:"Coordinamento azienda ospitante", voce:"Verifica INFO logistiche / organizzative", settimane:3},
+    {id:"bv7", gruppo:"Coordinamento azienda ospitante", voce:"Verifica numero massimo di iscritti", settimane:5},
+    {id:"bv8", gruppo:"Comunicazione", voce:"Testo landing page", settimane:7},
+    {id:"bv9", gruppo:"Comunicazione", voce:"Richiesta lancio landing", settimane:6},
+    {id:"bv10", gruppo:"Comunicazione", voce:"Post Linkedin 1+2", settimane:3},
+    {id:"bv11", gruppo:"Comunicazione", voce:"Post Linkedin 3+4", settimane:2},
+    {id:"bv12", gruppo:"Comunicazione", voce:"Post Linkedin 5+6", settimane:1},
+    {id:"bv13", gruppo:"Comunicazione", voce:"Inviti personali", settimane:4},
+    {id:"bv14", gruppo:"Comunicazione", voce:"Newsletter", settimane:3},
+    {id:"bv15", gruppo:"Grafiche", voce:"Chiedere FOTO + LOGHI dell'azienda ospitante", settimane:7},
+    {id:"bv16", gruppo:"Grafiche", voce:"Preparare CAROSELLI (6x3 slide cad.), esportare PDF", settimane:5},
+    {id:"bv17", gruppo:"Grafiche", voce:"Preparare CARTOLINA INVITO", settimane:5},
+    {id:"bv18", gruppo:"Grafiche", voce:"Preparare BADGE ISCRITTI", settimane:2},
+    {id:"bv19", gruppo:"Grafiche", voce:"Invio badge (+ grafiche eventuali) per la STAMPA", settimane:1},
+    {id:"bv20", gruppo:"Gestione iscritti", voce:"Preparare mail conferma iscrizione + agenda ICS", settimane:1},
+    {id:"bv21", gruppo:"Gestione iscritti", voce:"Preparare mail reminder + info organizzative", settimane:1},
+    {id:"bv22", gruppo:"Gestione iscritti", voce:"Aggiornare lista iscritti", settimane:1},
+    {id:"bv23", gruppo:"Gestione sala", voce:"Organizzare coffee break (esterno o interno, a carico di chi)", settimane:3},
+    {id:"bv24", gruppo:"Gestione sala", voce:"Verificare dotazioni di sala: dispositivi digitali, microfono", settimane:2},
+    {id:"bv25", gruppo:"Post evento", voce:"Verificare partecipanti effettivi", giorniDopo:0},
+    {id:"bv26", gruppo:"Post evento", voce:"Pubblicare post Linkedin", giorniDopo:4},
+    {id:"bv27", gruppo:"Post evento", voce:"Inviare mail di ringraziamento ai partecipanti", giorniDopo:4},
+    {id:"bv28", gruppo:"Post evento", voce:"Raccogliere feedback (questionario di gradimento)", giorniDopo:4},
+  ],
+  "Kaizen Award": [
+    {id:"ka1", gruppo:"Organizzazione", voce:"Individuazione REFERENTI per organizzazione e comunicazione"},
+    {id:"ka2", gruppo:"Organizzazione", voce:"Individuazione DATA + LUOGO"},
+    {id:"ka3", gruppo:"Organizzazione", voce:"Verifica INFO logistiche / organizzative"},
+    {id:"ka4", gruppo:"Organizzazione", voce:"Verifica numero massimo di iscritti"},
+    {id:"ka5", gruppo:"Promozione", voce:"Lancio LANDING PAGE candidatura + iscrizione"},
+  ],
+  "Round Table": [
+    {id:"rt1", gruppo:"Target", voce:"Individuazione TEMA giornata"},
+    {id:"rt2", gruppo:"Target", voce:"Individuazione OBIETTIVI"},
+    {id:"rt3", gruppo:"Target", voce:"Individuazione e ingaggio RELATORI"},
+    {id:"rt4", gruppo:"Organizzazione", voce:"Individuazione REFERENTI per organizzazione e comunicazione"},
+    {id:"rt5", gruppo:"Organizzazione", voce:"Individuazione DATA + SEDE"},
+    {id:"rt6", gruppo:"Organizzazione", voce:"Verifica INFO logistiche / organizzative"},
+  ],
+  "Fiera": [
+    {id:"fi1", gruppo:"Organizzazione", voce:"Individuazione REFERENTI per organizzazione e comunicazione"},
+    {id:"fi2", gruppo:"Organizzazione", voce:"Verifica INFO logistiche / organizzative"},
+    {id:"fi3", gruppo:"Promozione", voce:"Pubblicazione POST LINKEDIN"},
+    {id:"fi4", gruppo:"Promozione", voce:"Invio INVITI PERSONALI (mail + whatsapp)"},
+  ],
+};
+
+// Tipo evento: ora leggibile davvero, dalla colonna "Tipo" che hai aggiunto al Masterplan
+// (sigle BV/F/RT/KA). La vecchia mappa per nome resta solo come riserva, per eventuali righe
+// senza quella colonna compilata.
+const TIPO_CODICI = { "BV":"Benchmark Visit", "F":"Fiera", "RT":"Round Table", "KA":"Kaizen Award" };
+const KNOWN_TYPES = {
+  "BTICINO":"Benchmark Visit", "EMAK POZZILLI":"Benchmark Visit", "CUOA":"Round Table",
+  "YED":"Fiera", "RANDSTAD A2A GENERALI":"Round Table", "KAIZEN AWARD":"Kaizen Award",
+  "PHOENIX":"Benchmark Visit", "PARKER":"Benchmark Visit", "YOKOHAMA":"Round Table",
+  "MILANO KAIZEN DAY":"Round Table", "NSG":"Benchmark Visit", "MISA":"Benchmark Visit",
+  "PARADOX BERGAMO":"Benchmark Visit", "FOOD LAVAZZA":"Benchmark Visit", "FOOD BAULI":"Benchmark Visit",
+};
+function tipoOf(nomeEvento, codiceTipo){
+  const code = (codiceTipo||"").trim().toUpperCase();
+  if(TIPO_CODICI[code]) return TIPO_CODICI[code];
+  return KNOWN_TYPES[(nomeEvento||"").trim().toUpperCase()] || "Benchmark Visit";
+}
+
+// ============================================================
+// Date: Excel restituisce le date complete come numero seriale
+// (es. 46106), i mesi approssimati restano testo libero.
+// ============================================================
+function excelSerialToDate(serial){
+  return new Date(Math.round((serial - 25569) * 86400 * 1000));
+}
+const MESI_IT = {gen:0,feb:1,mar:2,apr:3,mag:4,giu:5,lug:6,ago:7,set:8,ott:9,nov:10,dic:11};
+function parseEventDate(raw){
+  const s = String(raw||"").trim();
+  if(/^\d+$/.test(s)){
+    return excelSerialToDate(parseInt(s, 10));
+  }
+  // Intervallo tipo "8-9 apr" o "16-18 APR": prendiamo il primo giorno.
+  const m = s.match(/^(\d{1,2})\s*-\s*\d{1,2}\s+([a-zA-Z]{3,})/);
+  if(m){
+    const day = parseInt(m[1],10);
+    const mese = MESI_IT[m[2].toLowerCase().slice(0,3)];
+    if(mese!=null) return new Date(2026, mese, day);
+  }
+  return null; // solo mese ("ottobre") o testo libero -> data non precisa
+}
+function isoWeek(date){
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  return 1 + Math.round((d - firstThursday) / (7*24*3600*1000));
+}
+function fmtDate(d){
+  return d.toLocaleDateString("it-IT", {day:"2-digit", month:"short", year:"numeric"});
+}
+function numOrNull(v){
+  if(v==null) return null;
+  const s = String(v).trim();
+  if(s==="" || s.toLowerCase()==="n/a") return null;
+  const n = parseFloat(s.replace(",","."));
+  return isNaN(n) ? null : n;
+}
+
+// ============================================================
+// Stato checklist: chi ha scritto per ultimo su una voce vince
+// (scriviamo sempre una riga nuova, mai un update in-place).
+// ============================================================
+let checklistState = {}; // chiave "Evento|EventoData|ItemId" -> true/false
+function stateKey(evento, eventoDataISO, itemId){
+  return `${evento}|${eventoDataISO}|${itemId}`;
+}
+function isFatto(v){
+  if(v === true || v === 1) return true;
+  const s = String(v ?? "").trim().toLowerCase();
+  return s === "true" || s === "vero" || s === "1" || s === "sì" || s === "si";
+}
+
+function normalizeDateForKey(v){
+  if(!v) return "";
+  const s = String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10); // già ISO
+  if(/^\d+$/.test(s)) return excelSerialToDate(parseInt(s,10)).toISOString().slice(0,10); // seriale Excel (es. "46288")
+  const d = new Date(s);
+  return isNaN(d) ? s : d.toISOString().slice(0,10);
+}
+
+async function fetchChecklistState(){
+  const res = await fetch(READ_CHECKLIST_URL, { method:"POST" });
+  const rows = await res.json();
+  const state = {};
+  rows.forEach(r=>{
+    const key = stateKey(r["Evento"], normalizeDateForKey(r["EventoData"]), r["ItemId"]);
+    state[key] = isFatto(r["Fatto"]);
+  });
+  return state;
+}
+
+function myName(){
+  let name = localStorage.getItem("marketingEventiNome");
+  if(!name){
+    name = prompt("Come ti chiami? (serve solo per segnare chi ha aggiornato la checklist)") || "Anonimo";
+    localStorage.setItem("marketingEventiNome", name);
+  }
+  return name;
+}
+
+async function toggleChecklistItem(evIdx, itemId, checked){
+  const e = eventi[evIdx];
+  const item = e.checklist.find(c=>c.id===itemId);
+  item.done = checked; // aggiornamento ottimistico, subito visibile
+  render();
+  const key = stateKey(e.nome, e.dataISO || "", itemId);
+  checklistState[key] = checked;
+  try{
+    await fetch(WRITE_CHECKLIST_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        evento: e.nome,
+        eventoData: e.dataISO || "",
+        itemId: itemId,
+        fatto: checked,
+        modificatoDa: myName()
+      })
+    });
+  }catch(err){
+    console.error("Errore salvataggio checklist:", err);
+  }
+}
+
+function nuovaChecklist(tipo, doneMap, eventoNome, dataISO, isPast){
+  return templates[tipo].map(t=>{
+    const key = stateKey(eventoNome, dataISO || "", t.id);
+    const hasExplicitState = Object.prototype.hasOwnProperty.call(doneMap, key);
+    return {...t, done: hasExplicitState ? !!doneMap[key] : !!isPast};
+  });
+}
+
+// ============================================================
+// Caricamento eventi dal Masterplan
+// ============================================================
+let eventi = [];
+
+async function fetchEvents(){
+  const res = await fetch(READ_EVENTS_URL, { method:"POST" });
+  return await res.json();
+}
+
+async function loadAll(){
+  document.getElementById("lastUpdate").textContent = "Carico i dati live...";
+  try{
+    const [rawEvents, doneMap] = await Promise.all([fetchEvents(), fetchChecklistState()]);
+    checklistState = doneMap;
+
+    eventi = rawEvents.map(r=>{
+      const raw = r["Data"];
+      const nome = r["Evento"];
+      const tipo = tipoOf(nome, r["Tipo"]);
+      const isExact = /^\d+$/.test(String(raw||"").trim());
+      const dataObj = parseEventDate(raw);
+      const dataISO = dataObj ? dataObj.toISOString().slice(0,10) : null;
+      const rawTrim = raw ? String(raw).trim() : null;
+      const displayRaw = rawTrim
+        ? (rawTrim.charAt(0).toUpperCase() + rawTrim.slice(1)) + (/\d{4}/.test(rawTrim) ? "" : " 2026")
+        : null;
+      const partner = {};
+      ["BFA","GGA","EGO","AVI","FCE"].forEach(k=>{
+        const v = (r[k]||"").trim();
+        if(v && v!=="-" && v.toUpperCase()!=="NO") partner[k]=v;
+      });
+      return {
+        nome,
+        tipo,
+        data: dataISO,
+        dataISO,
+        isExact,
+        displayRaw,
+        periodoApprox: dataObj ? null : (displayRaw || "-"),
+        leader: r["Leader"],
+        iscritti: numOrNull(r["N° ISCRITTI"]),
+        partecipanti: numOrNull(r["N° PARTECIPANTI EFFETTIVI"]),
+        partner,
+        proposteUscite: numOrNull(r["N_x002e_ proposte uscite"]),
+        proposteAccettate: numOrNull(r["N_x002e_ proposte accettate"]),
+        valore: numOrNull(r["Valore"]),
+        checklist: nuovaChecklist(tipo, checklistState, nome, dataISO, dataObj && dataObj<=today),
+      };
+    });
+
+    document.getElementById("lastUpdate").textContent =
+      "Aggiornato al " + new Date().toLocaleString("it-IT",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+    render();
+  }catch(e){
+    document.getElementById("lastUpdate").textContent = "Errore nel caricamento: " + e.message;
+    console.error(e);
+  }
+}
+
+// ============================================================
+// Scadenze e vista timeline WK (identica al prototipo validato)
+// ============================================================
+function scadenza(dataEventoISO, it){
+  if(!dataEventoISO) return null;
+  const d = new Date(dataEventoISO);
+  if(it.settimane!=null){ d.setDate(d.getDate() - it.settimane*7); return d; }
+  if(it.giorniDopo!=null){ d.setDate(d.getDate() + it.giorniDopo); return d; }
+  return null;
+}
+function deadlineLabel(it, dataEventoISO){
+  const sc = scadenza(dataEventoISO, it);
+  if(!sc) return "-";
+  return `WK${isoWeek(sc)}`;
+}
+function dueWeekOf(it, dataEventoISO){
+  const sc = scadenza(dataEventoISO, it);
+  return sc ? isoWeek(sc) : null;
+}
+
+function renderPlainGroup(g, items, idx){
+  return `
+    <div class="cl-group">
+      <div class="cl-group-title">${g}</div>
+      ${items.map(it=>`
+        <label class="cl-item ${it.done?'done':''}">
+          <input type="checkbox" data-ev="${idx}" data-item="${it.id}" ${it.done?'checked':''}>
+          <span class="cl-voce">${it.voce}</span>
+          <span class="cl-track-empty"></span>
+          <span class="cl-deadline">-</span>
+        </label>`).join("")}
+    </div>`;
+}
+
+function renderChecklist(e, idx, gruppi){
+  const preItems = e.checklist.filter(c=>c.settimane!=null);
+  const postItems = e.checklist.filter(c=>c.giorniDopo!=null);
+  const hasTrack = !!e.data && (preItems.length || postItems.length);
+  if(!hasTrack) return Object.entries(gruppi).map(([g,items])=>renderPlainGroup(g,items,idx)).join("");
+
+  const eventWeek = isoWeek(new Date(e.data));
+  const maxWeeksBefore = Math.max(8, preItems.length ? Math.max(...preItems.map(c=>c.settimane)) : 0);
+  const maxDaysAfter = postItems.length ? Math.max(...postItems.map(c=>c.giorniDopo)) : 0;
+  const weeksAfter = Math.ceil(maxDaysAfter/7);
+  const weekStart = eventWeek - maxWeeksBefore;
+  const weekEnd = eventWeek + weeksAfter;
+  const cols = []; for(let w=weekStart; w<=weekEnd; w++) cols.push(w);
+  const currentWeek = isoWeek(today);
+  const gridStyle = `grid-template-columns:repeat(${cols.length},1fr);`;
+
+  const header = `<div class="wk-header-row">
+    <span class="wk-header-spacer"></span>
+    <span class="wk-header-voce"></span>
+    <div class="wk-header" style="${gridStyle}">${cols.map((w,i)=>{
+      const cls = w===currentWeek?'wk-current':(w<currentWeek?'wk-past':'wk-future');
+      return `<div class="wk-cell ${cls}${w===eventWeek?' wk-event':''}" style="grid-column:${i+1};" title="WK${w}">${w}</div>`;
+    }).join("")}</div>
+    <span class="wk-header-deadline">Deadline</span>
+  </div>`;
+
+  const groupsHtml = Object.entries(gruppi).map(([g,items])=>`
+    <div class="cl-group">
+      <div class="cl-group-title">${g}</div>
+      ${items.map(it=>{
+        const dueWeek = dueWeekOf(it, e.data);
+        const itemHasTrack = dueWeek!=null;
+        const overdue = itemHasTrack && !it.done && dueWeek < currentWeek;
+        let dotStatus = "normal";
+        if(it.done) dotStatus = "done";
+        else if(itemHasTrack && dueWeek <= currentWeek) dotStatus = "urgent";
+        else if(itemHasTrack && dueWeek === currentWeek+1) dotStatus = "soon";
+        const colIndex = itemHasTrack ? (dueWeek - weekStart) : null;
+        const todayInWindow = currentWeek >= weekStart && currentWeek <= weekEnd;
+        const ticks = `<div class="wk-baseline"></div>
+          <div class="wk-marker wk-marker-event" style="grid-column:${eventWeek-weekStart+1};" title="Giorno evento"></div>
+          ${todayInWindow ? `<div class="wk-marker wk-marker-today" style="grid-column:${currentWeek-weekStart+1};" title="Oggi"></div>` : ""}`;
+        const dot = itemHasTrack ? `<div class="wk-dot ${dotStatus}" style="grid-column:${colIndex+1};" title="WK${dueWeek}"></div>` : "";
+        return `
+        <label class="cl-item ${it.done?'done':''}">
+          <input type="checkbox" data-ev="${idx}" data-item="${it.id}" ${it.done?'checked':''}>
+          <span class="cl-voce">${it.voce}</span>
+          ${itemHasTrack ? `<div class="wk-track" style="${gridStyle}">${ticks}${dot}</div>` : `<span class="cl-track-empty"></span>`}
+          <span class="cl-deadline ${overdue?'overdue':''}">${overdue?'in ritardo · ':''}${deadlineLabel(it, e.data)}</span>
+        </label>`;
+      }).join("")}
+    </div>`).join("");
+
+  return `<div style="grid-column:1/-1;">${header}${groupsHtml}</div>`;
+}
+
+// ============================================================
+// Card evento
+// ============================================================
+const openDetails = new Set();
+function toggleDetail(idx){
+  if(openDetails.has(idx)) openDetails.delete(idx); else openDetails.add(idx);
+  render();
+}
+let pastVisible = false;
+function togglePastEvents(){
+  pastVisible = !pastVisible;
+  render();
+}
+document.addEventListener("change", (ev)=>{
+  if(ev.target.matches('.cl-item input[type=checkbox]')){
+    toggleChecklistItem(+ev.target.dataset.ev, ev.target.dataset.item, ev.target.checked);
+  }
+});
+
+// Colori tipo evento: gli stessi usati nel Masterplan per Benchmark Visit e Kaizen Award
+// (letti direttamente dalla cella). Round Table e Fiera usavano colori "tema" di Office che
+// non si leggono come codice esadecimale diretto — qui uso un blu e un viola distinti al
+// posto loro: la corrispondenza esatta di quei due non è verificata al 100%, gli altri due sì.
+const TYPE_COLORS = {
+  "Benchmark Visit": {bg:"#FFF4DC", fg:"#8A6D0F"},
+  "Kaizen Award":     {bg:"#FBE3E3", fg:"#A33333"},
+  "Round Table":      {bg:"#E1EBFA", fg:"#2E5FA3"},
+  "Fiera":            {bg:"#EDE3F7", fg:"#6B3FA0"},
+};
+function typeTag(tipo){
+  const c = TYPE_COLORS[tipo] || {bg:"#ece9e2", fg:"#6b7280"};
+  return `<span style="background:${c.bg};color:${c.fg};font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;">${tipo}</span>`;
+}
+
+function renderEventCard(e, idx){
+  const status = !e.data ? "tbd" : (new Date(e.data) <= today ? "past" : "future");
+  const statusLabel = status==="tbd" ? "Da programmare" : (status==="past" ? "Svolto" : "In programma");
+  const done = e.checklist.filter(c=>c.done).length;
+  const tot = e.checklist.length;
+  const pct = tot ? Math.round((done/tot)*100) : 0;
+  const partnerStr = Object.entries(e.partner||{}).map(([k,v])=>`${k}: ${v}`).join(" · ") || "—";
+  const dataLabel = e.isExact ? fmtDate(new Date(e.data)) : (e.displayRaw || "-");
+
+  const gruppi = {};
+  e.checklist.forEach(c=>{ (gruppi[c.gruppo] ||= []).push(c); });
+  const checklistHtml = renderChecklist(e, idx, gruppi);
+
+  const numField = (id, label, value) => `
+    <label style="font-size:11.5px;">${label}<br>
+      <input id="${id}-${idx}" type="number" value="${value ?? ''}" style="width:70px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;margin-top:3px;">
+    </label>`;
+  const valoreField = `
+    <label style="font-size:11.5px;">Valore (€)<br>
+      <input id="editValore-${idx}" type="number" value="${e.valore ?? ''}" style="width:140px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;margin-top:3px;">
+    </label>`;
+  const prospectField = (k) => `
+    <label style="font-size:11.5px;flex:1;min-width:160px;">${k}<br>
+      <input id="edit${k}-${idx}" type="text" value="${(e.partner && e.partner[k]) || ''}" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;margin-top:3px;">
+    </label>`;
+  const editHtml = `
+    <div style="padding:16px 18px;border-top:1px solid var(--line);background:#fdf6e8;">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+        ${numField(`editIscritti`, "Iscritti", e.iscritti)}
+        ${numField(`editPartecipanti`, "Partecipanti", e.partecipanti)}
+        ${numField(`editProposteUscite`, "Proposte uscite", e.proposteUscite)}
+        ${numField(`editProposteAccettate`, "Proposte accettate", e.proposteAccettate)}
+        ${valoreField}
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin:14px 0 6px;">Prospect per partner</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        ${["BFA","GGA","EGO","AVI","FCE"].map(prospectField).join("")}
+      </div>
+      <div style="margin-top:10px;"><span id="editStatus-${idx}" style="font-size:12px;color:var(--muted);"></span></div>
+    </div>`;
+
+  return `
+  <div class="ev-card-wrap">
+    <div class="ev-card" onclick="toggleDetail(${idx})">
+      <div class="ev-date">${dataLabel}</div>
+      <div>
+        <div class="ev-name">${e.nome} ${typeTag(e.tipo)}</div>
+        <div class="ev-leader">Leader ${e.leader||'-'}</div>
+        <div class="ev-leader">${partnerStr}</div>
+      </div>
+      <div>
+        <span class="status-pill ${status}">${statusLabel}</span><br>
+        <button class="btn ghost" style="margin-top:6px;font-size:10.5px;padding:4px 9px;" onclick="event.stopPropagation(); toggleEditEvent(${idx});">Modifica</button>
+        ${status==="past" ? `<button class="btn ghost" style="margin-top:6px;font-size:10.5px;padding:4px 9px;display:block;" onclick="event.stopPropagation(); moveToConcluded(${idx});">Chiudi</button>` : ""}
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label" ${pct===100?'style="color:var(--good);font-weight:600;"':''}>Checklist: ${pct}% completata</div>
+        <div class="progress-bar"><div class="progress-fill${pct===100?' complete':''}" style="width:${pct}%"></div></div>
+        <div class="nums">Iscritti <b>${e.iscritti ?? '–'}</b> · Partecipanti <b>${e.partecipanti ?? '–'}</b></div>
+      </div>
+      <div class="proposte">
+        Proposte uscite <b>${e.proposteUscite ?? '–'}</b><br>
+        Accettate <b>${e.proposteAccettate ?? '–'}</b><br>
+        Valore <b>${e.valore!=null ? '€'+e.valore.toLocaleString('it-IT') : '–'}</b>
+      </div>
+    </div>
+    ${editOpen.has(idx) ? editHtml : ""}
+    <div class="ev-detail ${openDetails.has(idx)?'open':''}" id="detail-${idx}">${checklistHtml}</div>
+  </div>`;
+}
+
+// ============================================================
+// Render principale
+// ============================================================
+const MESI_LUNGHI = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+function renderCalendar(){
+  const anno = today.getFullYear();
+  const conDataEsatta = eventi.filter(e=>e.data);
+  const html = MESI_LUNGHI.map((nomeMese, m)=>{
+    const primoGiorno = new Date(anno, m, 1);
+    const giorniNelMese = new Date(anno, m+1, 0).getDate();
+    const offset = (primoGiorno.getDay() + 6) % 7; // lunedì=0
+    const cellsPrima = Array.from({length:offset}, ()=>`<div class="cal-day empty"></div>`);
+    const cellsGiorni = Array.from({length:giorniNelMese}, (_,i)=>{
+      const giorno = i+1;
+      const d = new Date(anno, m, giorno);
+      const eventiGiorno = conDataEsatta.filter(e=>{
+        const ed = new Date(e.data);
+        return ed.getFullYear()===anno && ed.getMonth()===m && ed.getDate()===giorno;
+      });
+      const isToday = d.getTime()===today.getTime();
+      if(eventiGiorno.length){
+        const c = TYPE_COLORS[eventiGiorno[0].tipo] || {fg:"#6b7280"};
+        const titolo = eventiGiorno.map(e=>`${e.nome} (${e.tipo})`).join(" · ");
+        return `<div class="cal-day has-event${isToday?' today':''}" style="background:${c.fg};" title="${titolo}">${giorno}</div>`;
+      }
+      return `<div class="cal-day${isToday?' today':''}">${giorno}</div>`;
+    });
+    const dow = ["L","M","M","G","V","S","D"].map(d=>`<div class="cal-dow">${d}</div>`).join("");
+    const isMeseCorrente = m === today.getMonth();
+    return `
+      <div class="cal-month${isMeseCorrente?' current':''}">
+        <div class="cal-month-title">${nomeMese} ${anno}</div>
+        <div class="cal-grid">${dow}${cellsPrima.join("")}${cellsGiorni.join("")}</div>
+      </div>`;
+  }).join("");
+  document.getElementById("calendarView").innerHTML = html;
+}
+
+function render(){
+  const withIdx = eventi.map((e,i)=>[e,i]);
+  const pastWithIdx = withIdx.filter(([e])=>e.data && new Date(e.data)<=today)
+    .sort((a,b)=> new Date(a[0].data) - new Date(b[0].data));
+  const futureWithIdx = withIdx.filter(([e])=>e.data && new Date(e.data)>today)
+    .sort((a,b)=> new Date(a[0].data) - new Date(b[0].data));
+  const tbdWithIdx = withIdx.filter(([e])=>!e.data);
+
+  document.getElementById("events-past").innerHTML = pastWithIdx.map(([e,i])=>renderEventCard(e,i)).join("");
+  document.getElementById("events-future").innerHTML = futureWithIdx.map(([e,i])=>renderEventCard(e,i)).join("");
+  document.getElementById("events-tbd").innerHTML = tbdWithIdx.map(([e,i])=>renderEventCard(e,i)).join("");
+  document.getElementById("events-past").style.display = pastVisible ? "flex" : "none";
+  document.getElementById("toggle-past-btn").textContent = pastVisible ? "Nascondi" : `Mostra (${pastWithIdx.length})`;
+
+  const totIscritti = eventi.reduce((s,e)=>s+(e.iscritti||0),0);
+  const totPartecipanti = eventi.reduce((s,e)=>s+(e.partecipanti||0),0);
+  const conProposte = eventi.filter(e=>e.proposteUscite!=null);
+  const totProposteUscite = conProposte.length ? conProposte.reduce((s,e)=>s+e.proposteUscite,0) : null;
+  const totProposteAccettate = conProposte.length ? conProposte.reduce((s,e)=>s+e.proposteAccettate,0) : null;
+  const totValore = conProposte.length ? conProposte.reduce((s,e)=>s+e.valore,0) : null;
+
+
+
+  const pctPartecipazione = totIscritti ? Math.round(totPartecipanti/totIscritti*100) : 0;
+  const pctProposte = totProposteUscite ? Math.round(totProposteAccettate/totProposteUscite*100) : 0;
+
+  document.getElementById("kpi-eventi").innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Eventi svolti</div>
+      <div class="kpi-value">${pastWithIdx.length}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Partecipazione</div>
+      <div class="kpi-value">${totPartecipanti}/${totIscritti}</div>
+      <div class="kpi-sub">partecipanti / iscritti · ${pctPartecipazione}%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Proposte</div>
+      <div class="kpi-value">${totProposteAccettate ?? '–'}/${totProposteUscite ?? '–'}</div>
+      <div class="kpi-sub">accettate / uscite · ${totProposteUscite ? pctProposte+'%' : 'n/d'}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Valore proposte accettate</div>
+      <div class="kpi-value">${totValore!=null ? '€'+totValore.toLocaleString('it-IT') : 'n/d'}</div>
+    </div>
+  `;
+
+  renderCalendar();
+}
+
+loadAll();
+</script>
+</body>
+</html>
